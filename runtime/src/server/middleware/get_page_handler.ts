@@ -8,6 +8,7 @@ import URL from 'url';
 import { sourcemap_stacktrace } from './sourcemap_stacktrace';
 import { Manifest, ManifestPage, Req, Res, build_dir, dev, src_dir } from '@sapper/internal/manifest-server';
 import App from '@sapper/internal/App.svelte';
+import { Page, PreloadContext } from '../../app/types';
 
 export function get_page_handler(
 	manifest: Manifest,
@@ -101,18 +102,19 @@ export function get_page_handler(
 		let redirect: { statusCode: number, location: string };
 		let preload_error: { statusCode: number, message: Error | string };
 
-		const preload_context = {
-			redirect: (statusCode: number, location: string) => {
+		const preload_context: PreloadContext = {
+			redirect: (statusCode, location) => {
 				if (redirect && (redirect.statusCode !== statusCode || redirect.location !== location)) {
 					throw new Error(`Conflicting redirects`);
 				}
 				location = location.replace(/^\//g, ''); // leading slash (only)
 				redirect = { statusCode, location };
 			},
-			error: (statusCode: number, message: Error | string) => {
+			error: (statusCode, message) => {
 				preload_error = { statusCode, message };
 			},
-			fetch: (url: string, opts?: any) => {
+			fetch: (requestInfo, opts?) => {
+				const url = typeof requestInfo === 'string' ? requestInfo : requestInfo.url;
 				const protocol = req.socket.encrypted ? 'https' : 'http';
 				const parsed = new URL.URL(url, `${protocol}://127.0.0.1:${process.env.PORT}${req.baseUrl ? req.baseUrl + '/' :''}`);
 
@@ -124,7 +126,7 @@ export function get_page_handler(
 				);
 
 				if (include_credentials) {
-					opts.headers = Object.assign({}, opts.headers);
+					opts.headers = Object.assign({}, opts.headers as Record<string, string>);
 
 					const cookies = Object.assign(
 						{},
@@ -177,13 +179,15 @@ export function get_page_handler(
 					// the deepest level is used below, to initialise the store
 					params = part.params ? part.params(match) : {};
 
+					const preloadPage: Page = {
+						host: req.headers.host,
+						path: req.path,
+						query: req.query,
+						params
+					};
+
 					return part.component.preload
-						? part.component.preload.call(preload_context, {
-							host: req.headers.host,
-							path: req.path,
-							query: req.query,
-							params
-						}, session)
+						? part.component.preload.call(preload_context, preloadPage, session)
 						: {};
 				}));
 			}
@@ -230,15 +234,17 @@ export function get_page_handler(
 				error.stack = sourcemap_stacktrace(error.stack);
 			}
 
+			const preloadPage: Page = {
+				host: req.headers.host,
+				path: req.path,
+				query: req.query,
+				params
+			};
+
 			const props = {
 				stores: {
 					page: {
-						subscribe: writable({
-							host: req.headers.host,
-							path: req.path,
-							query: req.query,
-							params
-						}).subscribe
+						subscribe: writable(preloadPage).subscribe
 					},
 					preloading: {
 						subscribe: writable(null).subscribe

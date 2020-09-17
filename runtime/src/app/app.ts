@@ -15,7 +15,8 @@ import {
 	Target,
 	ScrollPosition,
 	Redirect,
-	Page
+	Page,
+	PreloadContext
 } from './types';
 import goto from './goto';
 import { page_store } from './stores';
@@ -281,15 +282,15 @@ export async function hydrate_target(dest: Target): Promise<HydratedTarget> {
 
 	const props = { error: null, status: 200, segments: [segments[0]] };
 
-	const preload_context = {
-		fetch: (url: string, opts?: any) => fetch(url, opts),
-		redirect: (statusCode: number, location: string) => {
+	const preload_context: PreloadContext = {
+		fetch: (url, opts?) => fetch(url, opts),
+		redirect: (statusCode, location) => {
 			if (redirect && (redirect.statusCode !== statusCode || redirect.location !== location)) {
 				throw new Error(`Conflicting redirects`);
 			}
 			redirect = { statusCode, location };
 		},
-		error: (status: number, error: Error | string) => {
+		error: (status, error) => {
 			props.error = typeof error === 'string' ? new Error(error) : error;
 			props.status = status;
 		}

@@ -30,3 +30,9 @@ export interface Page {
 	params: Record<string, string>;
 	query: Record<string, string | string[]>;
 }
+
+export interface PreloadContext {
+	fetch: WindowOrWorkerGlobalScope['fetch'];
+	error: (statusCode: number, message: Error | string) => void;
+	redirect: (statusCode: number, location: string) => void;
+}

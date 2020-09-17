@@ -39,7 +39,7 @@ declare module "@sapper/service-worker" {
 
 declare module "@sapper/common" {
 	export interface PreloadContext {
-		fetch: (url: string, options?: any) => Promise<any>;
+		fetch: WindowOrWorkerGlobalScope['fetch'];
 		error: (statusCode: number, message: Error | string) => void;
 		redirect: (statusCode: number, location: string) => void;
 	}
@@ -52,6 +52,6 @@ declare module "@sapper/common" {
 	}
 
 	export interface PreloadFunction {
-		(this: PreloadContext, page: PreloadPage, session: any): any | Promise<any>;
+		(this: PreloadContext, page: PreloadPage, session: any): Object | Promise<Object>;
 	}
 }
