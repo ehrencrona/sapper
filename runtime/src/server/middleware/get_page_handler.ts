@@ -171,6 +171,7 @@ export function get_page_handler(
 		let preloaded: object[];
 		let match: RegExpExecArray;
 		let params: Record<string,string>;
+		let lang = 'en';
 
 		try {
 			const root_preload = manifest.root_comp.preload || (() => {});
@@ -186,6 +187,8 @@ export function get_page_handler(
 					session
 				)
 			);
+
+			lang = root_preloaded['lang'] || lang;
 
 			match = error ? null : page.pattern.exec(req.path);
 
@@ -379,6 +382,7 @@ export function get_page_handler(
 				.replace('%sapper.base%', () => `<base href="${req.baseUrl}/">`)
 				.replace('%sapper.scripts%', () => `<script${nonce_attr}>${script}</script>`)
 				.replace('%sapper.html%', () => html)
+				.replace('%sapper.lang%', () => lang)
 				.replace('%sapper.head%', () => head)
 				.replace('%sapper.styles%', () => styles)
 				.replace(/%sapper\.cspnonce%/g, () => nonce_value);
